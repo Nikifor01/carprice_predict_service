@@ -53,12 +53,22 @@ def predicti(item: Item) -> dict:
 
 
 @app.post("/predicts", response_model=ItemsResponse)
-def predictis(items: Items) -> List[dict]:
-
+def predictis(items: Items) -> ItemsResponse:
     preds = []
 
     for i in items.objects:
-        res = predicti(i)
-        preds.append(res)
+        instance = pydantic_to_df(i)
+        prediction = model.predict(instance).tolist()[0]
 
-    return preds
+        response = {
+            'year': i.year,
+            'km_driven': i.km_driven,
+            'mileage': i.mileage,
+            'engine': i.engine,
+            'max_power': i.max_power,
+            'seats': i.seats,
+            'prediction': prediction
+        }
+        preds.append(response)
+
+    return ItemsResponse(predictions=preds)
