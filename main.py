@@ -1,0 +1,64 @@
+from fastapi import FastAPI
+from pydantic import BaseModel
+from fastapi.encoders import jsonable_encoder
+from typing import List, Union
+from joblib import load
+import pandas as pd
+
+
+app = FastAPI()
+model = load('reg.joblib')
+
+
+class Item(BaseModel):
+    year: int
+    km_driven: int
+    mileage: Union[float, int]
+    engine: Union[float, int]
+    max_power: Union[float, int]
+    seats: int
+
+
+class Items(BaseModel):
+    objects: List[Item]
+
+
+class ItemResponse(BaseModel):
+    prediction: float
+
+
+class ItemsResponse(BaseModel):
+    predictions: List[dict]
+
+
+def pydantic_to_df(model_instance):
+    return pd.DataFrame([jsonable_encoder(model_instance)])
+
+
+@app.get("/")
+def check():
+    return {"message": "Api Started"}
+
+
+@app.post("/predict", response_model=ItemResponse)
+def predicti(item: Item) -> dict:
+
+    instance = pydantic_to_df(item)
+    prediction = model.predict(instance).tolist()[0]
+
+    response = item.model_dump(by_alias=True)
+    response.update({'prediction': prediction})
+
+    return response
+
+
+@app.post("/predicts", response_model=ItemsResponse)
+def predictis(items: Items) -> List[dict]:
+
+    preds = []
+
+    for i in items.objects:
+        res = predicti(i)
+        preds.append(res)
+
+    return preds
