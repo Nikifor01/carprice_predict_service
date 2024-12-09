@@ -10,6 +10,10 @@ app = FastAPI()
 model = load('reg.joblib')
 
 
+class Check(BaseModel):
+    resp: str
+
+
 class Item(BaseModel):
     year: int
     km_driven: int
@@ -35,9 +39,9 @@ def pydantic_to_df(model_instance):
     return pd.DataFrame([jsonable_encoder(model_instance)])
 
 
-@app.get("/")
+@app.get("/", response_model=Check)
 def check():
-    return {"message": "Api Started"}
+    return Check(resp="Api started")
 
 
 @app.post("/predict", response_model=ItemResponse)
